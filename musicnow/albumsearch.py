@@ -1,12 +1,17 @@
 '''
 Return Album Art url
 '''
+try:
+    from . import log
+except:
+    import log
 
 import requests
 import json
 from bs4 import BeautifulSoup
 import six
-
+from os import environ
+from os.path import realpath, basename
 
 if six.PY2:
     from urllib2 import urlopen, Request
@@ -15,16 +20,37 @@ elif six.PY3:
     from urllib.parse import quote
     from urllib.request import urlopen, Request
 
+
+def setup():
+    """
+    Gathers all configs
+    """
+
+    global CONFIG, BING_KEY, GENIUS_KEY, config_path, LOG_FILENAME, LOG_LINE_SEPERATOR 
+
+    LOG_FILENAME = 'musicrepair_log.txt'
+    LOG_LINE_SEPERATOR = '........................\n'
+
+    CONFIG = configparser.ConfigParser()
+    config_path = realpath(__file__).replace(basename(__file__),'')
+    config_path = config_path + 'config.ini'
+    CONFIG.read(config_path)
+
+    BING_KEY = CONFIG['keys']['bing_key']
+
+
 def img_search_bing(album):
     ''' Bing image search '''
 
+    setup()
+
     album = album + " Album Art"
 
-    api_key = "Add your API Key here"
+    api_key = "Key"
     endpoint = "https://api.cognitive.microsoft.com/bing/v5.0/images/search"
     links_dict = {}
 
-    headers = {'Ocp-Apim-Subscription-Key': api_key}
+    headers = {'Ocp-Apim-Subscription-Key': str(BING_KEY)}
     param = {'q': album, 'count': '1'}
 
     response = requests.get(endpoint, headers=headers, params=param)

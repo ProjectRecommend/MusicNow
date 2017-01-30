@@ -5,13 +5,20 @@ Tries to find the metadata of songs based on the file name
 https://github.com/lakshaykalbhor/MusicRepair
 '''
 
-from . import albumsearch
-from . import improvename
-from . import log
+try:
+    from . import albumsearch
+    from . import improvename
+    from . import log
+except:
+    import albumsearch
+    import improvename
+    import log
 
-from os import rename
+from os import rename, environ
+from os.path import realpath, basename
 import difflib
 import six
+import configparser
 
 from bs4 import BeautifulSoup
 
@@ -30,7 +37,24 @@ elif six.PY3:
     from urllib.request import urlopen
     Py3 = True
 
-LOG_LINE_SEPERATOR = '........................\n'
+
+
+def setup():
+    """
+    Gathers all configs
+    """
+
+    global CONFIG, BING_KEY, GENIUS_KEY, config_path, LOG_FILENAME, LOG_LINE_SEPERATOR 
+
+    LOG_FILENAME = 'musicrepair_log.txt'
+    LOG_LINE_SEPERATOR = '........................\n'
+
+    CONFIG = configparser.ConfigParser()
+    config_path = realpath(__file__).replace(basename(__file__),'')
+    config_path = config_path + 'config.ini'
+    CONFIG.read(config_path)
+
+    GENIUS_KEY = CONFIG['keys']['genius_key']
 
 
 def matching_details(song_name, song_title, artist):
@@ -84,7 +108,7 @@ def get_lyrics_genius(song_title):
     Scrapes the lyrics from Genius.com
     '''
     base_url = "http://api.genius.com"
-    headers = {'Authorization': 'Bearer (API KEY)'}
+    headers = {'Authorization': 'Bearer %s' %(GENIUS_KEY)}
     search_url = base_url + "/search"
     data = {'q': song_title}
 
@@ -263,6 +287,8 @@ def fix_music(file_name):
     and checks whether they already contain album art and album name tags or not.
     '''
 
+    setup()
+
     if not Py3:
         file_name = file_name.encode('utf-8')
 
@@ -281,10 +307,10 @@ def fix_music(file_name):
 
     try:
         log.log_indented('* Trying to extract album art from Google.com')
-        albumart = albumsearch.img_search_google(album)
+        albumart = albumsearch.img_search_google(artist+' '+album)
     except Exception:
         log.log_indented('* Trying to extract album art from Bing.com')
-        albumart = albumsearch.img_search_bing(album)
+        albumart = albumsearch.img_search_bing(artist+' '+album)
 
     if match_bool:
         add_albumart(albumart, file_name)
